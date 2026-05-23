@@ -9,7 +9,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # 🔑 Put your API key here (OpenAI)
-API_KEY = "YOUR_OPENAI_API_KEY"
+API_KEY = "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"
 
 # -------------------------
 # HOME
