@@ -1,56 +1,60 @@
 import os
+import requests
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# --------------------
-# Setup upload folder
-# --------------------
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# --------------------
-# Home page
-# --------------------
+# 🔑 Put your API key here (OpenAI)
+API_KEY = "YOUR_OPENAI_API_KEY"
+
+# -------------------------
+# HOME
+# -------------------------
 @app.route("/")
 def home():
-    return render_template("index.html", text="🎬 Ready to upload video")
+    return render_template("index.html", text="🎬 Upload video to get real AI text")
 
-# --------------------
-# Upload handler
-# --------------------
+# -------------------------
+# UPLOAD + SPEECH TO TEXT
+# -------------------------
 @app.route("/upload", methods=["POST"])
 def upload():
 
-    if "video" not in request.files:
-        return render_template("index.html", text="❌ No file uploaded")
-
     file = request.files["video"]
-
-    if file.filename == "":
-        return render_template("index.html", text="❌ No file selected")
-
-    # Save file
     path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
     file.save(path)
 
-    # --------------------
-    # SAFE OUTPUT (no Whisper to avoid Render crash)
-    # --------------------
-    text = f"""✅ Upload Success!
+    # -------------------------
+    # 🔥 CALL WHISPER API
+    # -------------------------
+    url = "https://api.openai.com/v1/audio/transcriptions"
 
-📁 File: {file.filename}
-📍 Saved: {path}
+    headers = {
+        "Authorization": f"Bearer {API_KEY}"
+    }
 
-⚠️ AI (Whisper) not enabled yet on Render
-"""
+    files = {
+        "file": open(path, "rb"),
+        "model": (None, "whisper-1")
+    }
+
+    response = requests.post(url, headers=headers, files=files)
+
+    if response.status_code != 200:
+        return render_template("index.html", text=f"❌ API Error: {response.text}")
+
+    data = response.json()
+    text = data.get("text", "")
 
     return render_template("index.html", text=text)
 
-# --------------------
-# Run server (Render required)
-# --------------------
+# -------------------------
+# RUN
+# -------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
